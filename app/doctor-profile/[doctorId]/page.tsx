@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,10 +12,6 @@ interface Slot {
   end: Date;
   duration?: number;
   type?: "weekly" | "daily" | "monthly" | "date";
-  dayOfWeek?: number;
-  startTime?: string;
-  endTime?: string;
-  date?: string;
 }
 
 interface Doctor {
@@ -74,14 +71,6 @@ export default function DoctorProfilePage() {
     setDoctor(data);
   };
 
-  useEffect(() => {
-    if (!selectedDate && Object.keys(slotsByDate).length > 0) {
-      const firstKey = Object.keys(slotsByDate)[0];
-      const [y, m, d] = firstKey.split("-").map(Number);
-      setSelectedDate(new Date(y, m - 1, d));
-    }
-  }, [slotsByDate]);
-
   const fetchAppointments = async () => {
     const res = await fetch(`${BASE_URL}/api/appointments/doctor/${doctorId}`);
     const data = await res.json();
@@ -94,11 +83,15 @@ export default function DoctorProfilePage() {
     setReviews(data);
   };
 
+  const getDateKey = (date: Date | string) => {
+    if (typeof date === "string") return date.split("T")[0];
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate(),
+    ).padStart(2, "0")}`;
+  };
+
   const getMonthYearLabel = () =>
-    currentMonth.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
+    currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
@@ -109,31 +102,16 @@ export default function DoctorProfilePage() {
     };
   };
 
-  const getDateKey = (date: Date | string) => {
-    if (typeof date === "string") return date.split("T")[0];
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-      date.getDate(),
-    ).padStart(2, "0")}`;
-  };
-
   const changeMonth = (dir: "prev" | "next") => {
     setSelectedDate(null);
     setSelectedSlotStart(null);
-    setCurrentMonth(
-      new Date(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth() + (dir === "next" ? 1 : -1),
-        1,
-      ),
-    );
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + (dir === "next" ? 1 : -1), 1));
   };
 
   const groupSlotsByDate = (slots: Slot[]) => {
     const map: Record<string, Slot[]> = {};
     slots.forEach((slot) => {
-      let key = "";
-      if (slot.type === "date" && slot.date) key = getDateKey(slot.date);
-      else if (slot.start) key = getDateKey(slot.start);
+      const key = getDateKey(slot.start);
       if (!map[key]) map[key] = [];
       map[key].push(slot);
     });
@@ -141,7 +119,6 @@ export default function DoctorProfilePage() {
   };
 
   const getSlotsForDate = (date: Date) => {
-    if (!date) return [];
     const key = getDateKey(date);
     return slotsByDate[key] || [];
   };
@@ -160,85 +137,30 @@ export default function DoctorProfilePage() {
       alert("Please select a time slot");
       return;
     }
-    const slot = getSlotsForDate(selectedDate).find(
-      (s) => s.start.getTime() === selectedSlotStart.getTime(),
-    );
-    if (!slot) {
-      alert("Invalid slot selected");
-      return;
-    }
-    localStorage.setItem(
-      "selectedSlot",
-      JSON.stringify({
-        doctorId,
-        start: slot.start,
-        end: slot.end,
-      }),
-    );
+    const slot = getSlotsForDate(selectedDate).find((s) => s.start.getTime() === selectedSlotStart.getTime());
+    if (!slot) return;
+    localStorage.setItem("selectedSlot", JSON.stringify({ doctorId, start: slot.start, end: slot.end }));
     router.push(`/book-appointment?doctorId=${doctorId}`);
   };
 
   const fetchAvailableSlots = async () => {
     if (!doctor) return;
 
-    const monthStart = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      1,
-    );
-    const monthEnd = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() + 1,
-      0,
-    );
+    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
 
-    const res = await fetch(
-      `${BASE_URL}/api/appointments/${doctor._id}/availability?from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`,
-    );
-
+    const res = await fetch(`${BASE_URL}/api/appointments/${doctor._id}/availability?from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`);
     const data: Slot[] = await res.json();
 
-    const slotsWithDates: Slot[] = [];
-
-    data.forEach((slot) => {
-      if (
-        slot.type === "weekly" &&
-        slot.startTime &&
-        slot.endTime &&
-        slot.dayOfWeek !== undefined
-      ) {
-        // weekly logic (optional)
-      } else if (
-        slot.type === "date" &&
-        slot.date &&
-        slot.startTime &&
-        slot.endTime
-      ) {
-        const [startH, startM] = slot.startTime.split(":").map(Number);
-        const [endH, endM] = slot.endTime.split(":").map(Number);
-        const [y, m, d] = slot.date.split("-").map(Number);
-
-        const start = new Date(y, m - 1, d, startH, startM, 0, 0);
-        const end = new Date(y, m - 1, d, endH, endM, 0, 0);
-
-        slotsWithDates.push({
-          ...slot,
-          start, // now a Date
-          end, // now a Date
-        });
-      } else {
-        // If slot.start/end are strings, convert them
-        slotsWithDates.push({
-          ...slot,
-          start: new Date(slot.start as any),
-          end: new Date(slot.end as any),
-        });
-      }
-    });
+    const slotsWithDates = data.map((slot) => ({
+      ...slot,
+      start: new Date(slot.start),
+      end: new Date(slot.end),
+    }));
 
     setSlotsByDate(groupSlotsByDate(slotsWithDates));
 
-    if (!selectedDate) {
+    if (!selectedDate && Object.keys(slotsWithDates).length > 0) {
       const firstKey = Object.keys(groupSlotsByDate(slotsWithDates))[0];
       if (firstKey) {
         const [y, m, d] = firstKey.split("-").map(Number);
@@ -247,169 +169,118 @@ export default function DoctorProfilePage() {
     }
   };
 
-  if (!doctor) return <p className="text-center mt-5">Loading...</p>;
+  if (!doctor) {
+  return (
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "60vh", marginTop: 50 }}>
+      <div className="text-center">
+        <div className="spinner-border text-primary" role="status" style={{ width: 60, height: 60 }}>
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2">Loading doctor details...</p>
+      </div>
+    </div>
+  );
+}
+
+  const avgRating = reviews.length
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : null;
 
   return (
     <div className="d-flex flex-column min-vh-100">
       <Navbar />
-      <main className="container flex-grow-1 py-3">
+      <main className="container py-4 flex-grow-1">
+
         {/* Doctor Info */}
-        <div className="row mb-4 " style={{ marginTop: 55 }}>
-          <div className="col-md-4 text-center">
-            <img
-              src={doctor.image}
-              className="rounded-circle"
-              style={{ width: 200, height: 200, objectFit: "cover" }}
-              alt={doctor.name}
-            />
-            <h3>{doctor.name}</h3>
-          </div>
-          <div className="col-md-8">
-            <p>
-              <b>Specialization:</b> {doctor.specialization}
-            </p>
-            <p>
-              <b>Email:</b> {doctor.email}
-            </p>
-            <p>
-              <b>Phone:</b> {doctor.phone}
-            </p>
-            <p>
-              <b>Experience:</b> {doctor.experience || "-"}
-            </p>
-            <p>
-              <b>Education:</b> {doctor.education || "-"}
-            </p>
-            <p>
-              <b>Certifications:</b> {doctor.certifications || "-"}
-            </p>
-            <p>
-              <b>Languages:</b> {doctor.languages || "-"}
-            </p>
-            <p>
-              <b>Hospital:</b> {doctor.hospital || "-"}
-            </p>
+        <div className="card shadow-sm p-4 mb-4 mt-5">
+          <div className="row align-items-center">
+            <div className="col-md-3 text-center">
+              <img src={doctor.image} className="rounded-circle" style={{ width: 150, height: 150, objectFit: "cover" }} alt={doctor.name} />
+            </div>
+            <div className="col-md-9">
+              <h3>{doctor.name}</h3>
+              <p className="text-primary">{doctor.specialization}</p>
+              <div className="d-flex align-items-center mb-2">
+                {avgRating && (
+                  <>
+                    <span className="me-2 fw-bold">{avgRating}</span>
+                    <span className="text-warning">
+                      {"★".repeat(Math.round(Number(avgRating)))}
+                      {"☆".repeat(5 - Math.round(Number(avgRating)))}
+                    </span>
+                    <span className="ms-2 text-muted">({reviews.length} reviews)</span>
+                  </>
+                )}
+              </div>
+              <p className="mb-1"><b>Hospital:</b> {doctor.hospital || "-"}</p>
+              <p className="mb-1"><b>Experience:</b> {doctor.experience || "-"}</p>
+              <p className="mb-1"><b>Languages:</b> {doctor.languages || "-"}</p>
+            </div>
           </div>
         </div>
-      </main>
 
-      {/* Available Slots */}
-      <div className="container mb-4">
-        <div className="card p-4">
-          <h3 className="mb-3 text-center">Available Slots</h3>
+        {/* Calendar + Slots */}
+        <div className="card shadow-sm p-4 mb-4">
+          <h4 className="mb-3 text-center">Book Your Appointment</h4>
           <div className="row">
             {/* Calendar */}
-            {/* Calendar */}
-            <div className="col-md-6 border-end text-center">
-              <div className="d-flex justify-content-between mb-2">
-                <button onClick={() => changeMonth("prev")}>◀</button>
-                <b>{getMonthYearLabel()}</b>
-                <button onClick={() => changeMonth("next")}>▶</button>
+            <div className="col-md-6 border-end pe-3 text-center mb-3 mb-md-0">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <button className="btn btn-outline-primary btn-sm" onClick={() => changeMonth("prev")}>◀</button>
+                <span className="fw-bold">{getMonthYearLabel()}</span>
+                <button className="btn btn-outline-primary btn-sm" onClick={() => changeMonth("next")}>▶</button>
               </div>
-
-              <div
-                className="d-grid"
-                style={{ gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}
-              >
-                {/* Weekday headers */}
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((wd) => (
-                  <div key={wd} className="text-center fw-bold mb-1">
-                    {wd}
-                  </div>
-                ))}
-
-                {/* Empty cells for first day offset */}
-                {Array.from({ length: getDaysInMonth().firstDay }).map(
-                  (_, i) => (
-                    <div key={`empty-${i}`} />
-                  ),
-                )}
-
-                {/* Calendar dates */}
-                {Array.from({ length: getDaysInMonth().daysInMonth }).map(
-                  (_, i) => {
-                    const date = new Date(
-                      currentMonth.getFullYear(),
-                      currentMonth.getMonth(),
-                      i + 1,
-                    );
-                    const key = getDateKey(date);
-                    const hasSlots = !!slotsByDate[key];
-
-                    return (
-                      <button
-                        key={i}
-                        className={`btn btn-sm d-flex flex-column align-items-center ${
-                          selectedDate?.toDateString() === date.toDateString()
-                            ? "btn-primary"
-                            : hasSlots
-                              ? "btn-outline-primary"
-                              : "btn-light text-muted"
-                        }`}
-                        disabled={!hasSlots}
-                        onClick={() => {
-                          setSelectedDate(date);
-                          setSelectedSlotStart(null);
-                        }}
-                      >
-                        <small className="text-muted">
-                          {date.toLocaleDateString("en-US", {
-                            weekday: "short",
-                          })}
-                        </small>
-                        <span>{i + 1}</span>
-                      </button>
-                    );
-                  },
-                )}
+              <div className="d-grid" style={{ gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => <div key={d} className="text-center fw-bold">{d}</div>)}
+                {Array.from({ length: getDaysInMonth().firstDay }).map((_, i) => <div key={`empty-${i}`}></div>)}
+                {Array.from({ length: getDaysInMonth().daysInMonth }).map((_, i) => {
+                  const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
+                  const key = getDateKey(date);
+                  const hasSlots = !!slotsByDate[key];
+                  return (
+                    <button
+                      key={i}
+                      className={`btn btn-sm d-flex flex-column align-items-center rounded-pill ${selectedDate?.toDateString() === date.toDateString() ? "btn-primary text-white" : hasSlots ? "btn-outline-primary" : "btn-light text-muted"}`}
+                      disabled={!hasSlots}
+                      onClick={() => { setSelectedDate(date); setSelectedSlotStart(null); }}
+                    >
+                      <small className="text-muted">{date.toLocaleDateString("en-US",{ weekday:"short" })}</small>
+                      <span>{i+1}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
             {/* Time Slots */}
-            <div className="col-md-6">
+            <div className="col-md-6 ps-3">
               <h6>Select Time</h6>
               <div className="d-flex flex-wrap gap-2">
-                {selectedDate &&
-                  getSlotsForDate(selectedDate).map((slot, i) => {
-                    const booked = isBooked(slot);
-                    const isSelected =
-                      selectedSlotStart?.getTime() === slot.start.getTime();
-                    return (
-                      <button
-                        key={i}
-                        disabled={booked}
-                        className={`btn ${
-                          booked
-                            ? "btn-danger text-white"
-                            : isSelected
-                              ? "btn-primary"
-                              : "btn-outline-primary"
-                        }`}
-                        title={
-                          booked
-                            ? "Already booked"
-                            : `${slot.duration || 30} min`
-                        }
-                        onClick={() => setSelectedSlotStart(slot.start)}
-                      >
-                        {slot.start.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {booked && " (Booked)"}
-                      </button>
-                    );
-                  })}
+                {selectedDate && getSlotsForDate(selectedDate).map((slot, i) => {
+                  const booked = isBooked(slot);
+                  const isSelected = selectedSlotStart?.getTime() === slot.start.getTime();
+                  return (
+                    <button
+                      key={i}
+                      disabled={booked}
+                      className={`btn rounded-pill ${booked ? "btn-danger text-white" : isSelected ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={() => setSelectedSlotStart(slot.start)}
+                    >
+                      {slot.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{booked && " (Booked)"}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
-          <div className="text-center mt-3">
-            <button className="btn btn-primary" onClick={handleBookAppointment}>
-              Book Appointment
-            </button>
+
+          <div className="text-center mt-4">
+            <button className="btn btn-primary px-4 py-2" onClick={handleBookAppointment}>Book Appointment</button>
           </div>
         </div>
-      </div>
+
+      
+      </main>
     </div>
-  );
+  )
 }
