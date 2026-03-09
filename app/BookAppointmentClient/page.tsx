@@ -1,5 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
+
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { showToast } from "../../utils/toast";
@@ -144,41 +145,44 @@ export default function BookAppointment() {
     <div className="container py-5 mt-5">
       <div className="row justify-content-center">
         <div className="col-md-8 col-lg-6">
-          <div className="card shadow-lg rounded-4 border-0 p-4">
-            <h2 className="mb-4 text-center fw-bold">Book an Appointment</h2>
+          <div className="card shadow-lg rounded-5 border-0 p-5" style={{ backgroundColor: "#f9f9f9" }}>
+            <h2 className="mb-4 text-center fw-bold" style={{ color: "#0d6efd" }}>
+              Book an Appointment
+            </h2>
 
             <form onSubmit={handleSubmit}>
-              <div className="mb-3">
+              {/* Name */}
+              <div className="mb-4">
                 <label className="form-label fw-semibold">Your Name</label>
                 <input
-                  className="form-control form-control-lg shadow-sm"
+                  className="form-control form-control-lg shadow-sm border-1 rounded-3"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
                   placeholder="Enter your full name"
                 />
               </div>
 
-              <div className="mb-3">
-                <label className="form-label fw-semibold">Patient Email</label>
+              {/* Email */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold">Email</label>
                 <input
-                  className="form-control form-control-lg shadow-sm"
+                  className="form-control form-control-lg shadow-sm border-1 rounded-3"
                   value={patientEmail}
                   onChange={(e) => setPatientEmail(e.target.value)}
                   placeholder="you@example.com"
                 />
               </div>
 
-              <div className="mb-3">
+              {/* Doctor */}
+              <div className="mb-4">
                 <label className="form-label fw-semibold">Select Doctor</label>
                 <select
-                  className="form-select form-select-lg shadow-sm"
+                  className="form-select form-select-lg shadow-sm border-1 rounded-3"
                   value={selectedDoctor}
                   onChange={(e) => setSelectedDoctor(e.target.value)}
                   disabled={!!slot || !!doctorIdFromUrl}
                 >
-                  {!slot && !doctorIdFromUrl && (
-                    <option value="">Select a doctor</option>
-                  )}
+                  {!slot && !doctorIdFromUrl && <option value="">Select a doctor</option>}
                   {doctors.map((doc) => (
                     <option key={doc._id} value={doc._id}>
                       {doc.name} ({doc.specialization})
@@ -187,38 +191,41 @@ export default function BookAppointment() {
                 </select>
               </div>
 
-              <div className="mb-3">
+              {/* Date */}
+              <div className="mb-4">
                 <label className="form-label fw-semibold">Date</label>
                 <input
                   type="date"
-                  className="form-control form-control-lg shadow-sm"
+                  className="form-control form-control-lg shadow-sm border-1 rounded-3"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   disabled={!!slot}
                 />
               </div>
 
+              {/* Time */}
               <div className="mb-4">
                 <label className="form-label fw-semibold">Time</label>
                 <input
                   type="time"
-                  className="form-control form-control-lg shadow-sm"
+                  className="form-control form-control-lg shadow-sm border-1 rounded-3"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
                   disabled={!!slot}
                 />
               </div>
 
-              <button className="btn btn-primary btn-lg w-100 fw-bold">
+              <button className="btn btn-primary btn-lg w-100 fw-bold shadow-sm" type="submit">
                 {slot ? "Confirm Appointment" : "Book Appointment"}
               </button>
             </form>
 
             {slot && (
-              <p className="mt-3 text-success text-center fw-semibold">
+              <p className="mt-4 text-center fw-semibold text-success">
                 Selected slot:{" "}
-                {new Date(slot.start).toLocaleString()} –{" "}
-                {new Date(slot.end).toLocaleTimeString()}
+                <span className="fw-normal">
+                  {new Date(slot.start).toLocaleString()} – {new Date(slot.end).toLocaleTimeString()}
+                </span>
               </p>
             )}
           </div>
@@ -227,20 +234,3 @@ export default function BookAppointment() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
