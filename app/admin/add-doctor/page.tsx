@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, ChangeEvent, FormEvent } from "react";
@@ -30,7 +29,6 @@ interface AvailabilityRule {
 }
 
 export default function AddDoctorPage() {
-
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [preview, setPreview] = useState<string | null>(null);
   const [editDoctor, setEditDoctor] = useState<Doctor | null>(null);
@@ -77,30 +75,28 @@ export default function AddDoctorPage() {
   // ================= FETCH =================
 
   const fetchDoctors = async () => {
-  try {
-    const res = await fetch(`${API_URL}/api/doctors`);
+    try {
+      const res = await fetch(`${API_URL}/api/doctors`);
 
-    let data;
+      let data;
 
-try {
-  data = await res.json();
-} catch {
-  const text = await res.text();
-  console.error("Server returned HTML:", text);
-  throw new Error("Server error");
-}
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        console.error("Server returned HTML:", text);
+        throw new Error("Server error");
+      }
 
-   
-
-    if (Array.isArray(data)) {
-  setDoctors(data);
-} else {
-  setDoctors([]);
-}
-  } catch (error) {
-    console.error("Fetch doctors error:", error);
-  }
-};
+      if (Array.isArray(data)) {
+        setDoctors(data);
+      } else {
+        setDoctors([]);
+      }
+    } catch (error) {
+      console.error("Fetch doctors error:", error);
+    }
+  };
 
   useEffect(() => {
     fetchDoctors();
@@ -122,7 +118,6 @@ try {
   // ================= ADD AVAILABILITY =================
 
   const addAvailabilityRule = () => {
-
     if (!from || !to || !selectedDate)
       return showToast("Select date/time", "error");
 
@@ -147,78 +142,80 @@ try {
 
   // ================= ADD =================
 
-const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+  const handleAdd = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-  try {
-
-    if (!formData.name || !formData.specialization || !formData.email || !formData.phone) {
-      return showToast("Please fill all required fields", "error");
-    }
-
-    setLoading(true);
-
-    const payload = new FormData();
-
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === "image" && value) {
-        payload.append("image", value as File);
-      } else {
-        payload.append(key, value as string);
+    try {
+      if (
+        !formData.name ||
+        !formData.specialization ||
+        !formData.email ||
+        !formData.phone
+      ) {
+        return showToast("Please fill all required fields", "error");
       }
-    });
 
-    payload.append("availabilitySlots", JSON.stringify(availability));
+      setLoading(true);
 
-    const res = await fetch(`${API_URL}/api/doctors`, {
-      method: "POST",
-      body: payload
-    });
+      const payload = new FormData();
 
-    let data;
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "image" && value) {
+          payload.append("image", value as File);
+        } else {
+          payload.append(key, value as string);
+        }
+      });
 
-try {
-  data = await res.json();
-} catch {
-  throw new Error("Server error");
-}
+      payload.append("availabilitySlots", JSON.stringify(availability));
 
-    if (!res.ok) {
-      showToast(data.message || "Failed to add doctor", "error");
-      return;
+      const res = await fetch(`${API_URL}/api/doctors`, {
+        method: "POST",
+        body: payload,
+      });
+
+      let data;
+
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Server error");
+      }
+
+      if (!res.ok) {
+        showToast(data.message || "Failed to add doctor", "error");
+        return;
+      }
+
+      showToast("Doctor added successfully", "success");
+
+      setFormData({
+        name: "",
+        specialization: "",
+        email: "",
+        phone: "",
+        experience: "",
+        education: "",
+        certifications: "",
+        languages: "",
+        hospital: "",
+        image: null,
+      });
+
+      setPreview(null);
+      setAvailability([]);
+
+      fetchDoctors();
+    } catch (error) {
+      console.error(error);
+      showToast("Server error", "error");
+    } finally {
+      setLoading(false);
     }
-
-    showToast("Doctor added successfully", "success");
-
-    setFormData({
-      name: "",
-      specialization: "",
-      email: "",
-      phone: "",
-      experience: "",
-      education: "",
-      certifications: "",
-      languages: "",
-      hospital: "",
-      image: null
-    });
-
-    setPreview(null);
-    setAvailability([]);
-
-    fetchDoctors();
-
-  } catch (error) {
-    console.error(error);
-    showToast("Server error", "error");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   // ================= UPDATE =================
 
   const handleUpdate = async (e: FormEvent<HTMLFormElement>) => {
-
     e.preventDefault();
 
     if (!editDoctor) return;
@@ -227,8 +224,17 @@ try {
 
     const payload = new FormData();
 
-    ["name","specialization","email","phone","experience","education","certifications","languages","hospital"]
-      .forEach(key => payload.append(key, target[key].value || ""));
+    [
+      "name",
+      "specialization",
+      "email",
+      "phone",
+      "experience",
+      "education",
+      "certifications",
+      "languages",
+      "hospital",
+    ].forEach((key) => payload.append(key, target[key].value || ""));
 
     if (target.image?.files[0]) {
       payload.append("image", target.image.files[0]);
@@ -236,7 +242,7 @@ try {
 
     await fetch(`${API_URL}/api/doctors/${editDoctor._id}`, {
       method: "PUT",
-      body: payload
+      body: payload,
     });
 
     showToast("Doctor updated", "success");
@@ -255,30 +261,28 @@ try {
 
   return (
     <>
-      
-
       <div style={{ marginLeft: 100, padding: 60 }}>
-
         {/* HEADER */}
-        <h3 className="fw-bold mb-4">Doctors Management</h3>
+       <h3 className="fw-bold mb-4 text-primary text-center">Doctors Management</h3>
 
         {/* ADD CARD */}
         <div className="card shadow-sm border-0 mb-5">
           <div className="card-body p-4">
-
             <h5 className="fw-semibold mb-3">Add Doctor</h5>
 
             <form onSubmit={handleAdd}>
-
               <div className="row g-3">
-
                 {Object.entries(formData)
                   .filter(([k]) => k !== "image")
                   .map(([key, value]) => (
                     <div key={key} className="col-md-6">
+                      <label className="form-label text-capitalize fw-semibold">
+                        {key}
+                      </label>
+
                       <input
-                        className="form-control"
-                        placeholder={key}
+                        className="form-control shadow-sm"
+                        placeholder={`Enter ${key}`}
                         value={value as string}
                         onChange={(e) =>
                           setFormData((prev) => ({
@@ -289,26 +293,32 @@ try {
                       />
                     </div>
                   ))}
-
                 <div className="col-md-6">
-                  <input type="file" className="form-control" onChange={handleImageChange} />
+                  <input
+                    type="file"
+                    className="form-control"
+                    onChange={handleImageChange}
+                  />
                 </div>
 
                 {preview && (
                   <div className="col-md-6">
-                    <img src={preview} width={80} className="rounded-circle border" />
+                    <img
+                      src={preview}
+                      width={90}
+                      height={90}
+                      className="rounded-circle border shadow-sm"
+                    />
                   </div>
                 )}
-
               </div>
 
               {/* AVAILABILITY */}
-              <div className="mt-4 p-3 bg-light rounded">
-
-                <h6 className="fw-bold">Availability</h6>
-
+            <div className="mt-4 p-4 bg-light rounded border">
+              <h6 className="fw-bold text-secondary mb-3">
+  Doctor Availability
+</h6>
                 <div className="row g-2">
-
                   <div className="col-md-3">
                     <input
                       type="date"
@@ -319,25 +329,41 @@ try {
                   </div>
 
                   <div className="col-md-3">
-                    <select className="form-select" value={from} onChange={(e) => setFrom(e.target.value)}>
+                    <select
+                      className="form-select"
+                      value={from}
+                      onChange={(e) => setFrom(e.target.value)}
+                    >
                       <option>From</option>
-                      {timeOptions.map(t => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
+                      {timeOptions.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   <div className="col-md-3">
-                    <select className="form-select" value={to} onChange={(e) => setTo(e.target.value)}>
+                    <select
+                      className="form-select"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                    >
                       <option>To</option>
-                      {timeOptions.map(t => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
+                      {timeOptions.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   <div className="col-md-2">
-                    <select className="form-select" value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
+                    <select
+                      className="form-select"
+                      value={duration}
+                      onChange={(e) => setDuration(Number(e.target.value))}
+                    >
                       <option value={15}>15m</option>
                       <option value={30}>30m</option>
                       <option value={60}>60m</option>
@@ -345,28 +371,35 @@ try {
                   </div>
 
                   <div className="col-md-1">
-                    <button type="button" className="btn btn-success w-100" onClick={addAvailabilityRule}>
+                    <button
+                      type="button"
+                      className="btn btn-success w-100"
+                      onClick={addAvailabilityRule}
+                    >
                       +
                     </button>
                   </div>
-
                 </div>
 
                 <div className="mt-3 d-flex flex-wrap gap-2">
                   {availability.map((s, i) => (
                     <div key={i} className="badge bg-primary p-2">
                       {s.date} {s.startTime}-{s.endTime}
-                      <span className="ms-2" style={{ cursor: "pointer" }} onClick={() => removeSlot(i)}>❌</span>
+                      <span
+                        className="ms-2"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => removeSlot(i)}
+                      >
+                        ❌
+                      </span>
                     </div>
                   ))}
                 </div>
-
               </div>
 
-              <button className="btn btn-primary mt-4 px-4">
+           <button className="btn btn-primary mt-4 px-4 py-2 shadow-sm">
                 {loading ? "Saving..." : "Add Doctor"}
               </button>
-
             </form>
           </div>
         </div>
@@ -374,12 +407,10 @@ try {
         {/* DOCTOR TABLE */}
         <div className="card shadow-sm border-0">
           <div className="card-body">
-
             <h5 className="fw-semibold mb-3">Doctors List</h5>
 
-            <table className="table align-middle">
-
-              <thead>
+            <table className="table table-hover align-middle">
+              <thead className="table-light">
                 <tr>
                   <th>Image</th>
                   <th>Name</th>
@@ -390,92 +421,102 @@ try {
                 </tr>
               </thead>
 
-           <tbody>
-  {doctors.map((d) => (
-    <tr key={d._id}>
-      
-      {/* Image */}
-      <td>
-       <img
+              <tbody>
+                {doctors.map((d) => (
+                  <tr key={d._id}>
+                    {/* Image */}
+                    <td>
+                     <img
   src={d.image}
-  width={40}
-  height={40}
-  className="rounded-circle"
+  width={45}
+  height={45}
+  className="rounded-circle border shadow-sm"
 />
-      </td>
+                    </td>
 
-      {/* Doctor Name */}
-      <td>{d.name}</td>
+                    {/* Doctor Name */}
+                    <td>{d.name}</td>
 
-      {/* Specialization */}
-      <td>{d.specialization}</td>
+                    {/* Specialization */}
+                    <td>{d.specialization}</td>
 
-      {/* Phone */}
-      <td>{d.phone}</td>
+                    {/* Phone */}
+                    <td>{d.phone}</td>
 
-      {/* Hospital */}
-      <td>{d.hospital || "-"}</td>
+                    {/* Hospital */}
+                    <td>{d.hospital || "-"}</td>
 
-      {/* Actions */}
-      <td className="d-flex gap-2">
-        <button
-          className="btn btn-sm btn-warning"
-          onClick={() => {
-            setEditDoctor(d);
-            setPreview(d.image);
-          }}
-        >
-          Edit
-        </button>
+                    {/* Actions */}
+                   <td className="text-center">
+  <div className="d-flex justify-content-center gap-2">
+    
+    <button
+      className="btn btn-sm btn-outline-warning"
+      onClick={() => {
+        setEditDoctor(d);
+        setPreview(d.image);
+      }}
+    >
+      Edit
+    </button>
 
-        <button
-          className="btn btn-sm btn-danger"
-          onClick={() => deleteDoctor(d._id)}
-        >
-          Delete
-        </button>
-      </td>
+    <button
+      className="btn btn-sm btn-outline-danger"
+      onClick={() => deleteDoctor(d._id)}
+    >
+      Delete
+    </button>
 
-    </tr>
-  ))}
-</tbody>
-
-
+  </div>
+</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </div>
-
       </div>
 
       {/* EDIT MODAL */}
 
       {editDoctor && (
         <div className="modal fade show d-block bg-dark bg-opacity-50">
-
           <div className="modal-dialog">
-
             <div className="modal-content">
-
               <form onSubmit={handleUpdate}>
-
                 <div className="modal-header">
                   <h5>Edit Doctor</h5>
-                  <button type="button" className="btn-close" onClick={() => setEditDoctor(null)} />
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setEditDoctor(null)}
+                  />
                 </div>
 
                 <div className="modal-body">
+                  {[
+                    "name",
+                    "specialization",
+                    "email",
+                    "phone",
+                    "experience",
+                    "education",
+                    "certifications",
+                    "languages",
+                    "hospital",
+                  ].map((key) => (
+                    <input
+                      key={key}
+                      name={key}
+                      defaultValue={(editDoctor as any)[key]}
+                      className="form-control mb-2"
+                    />
+                  ))}
 
-                  {["name","specialization","email","phone","experience","education","certifications","languages","hospital"]
-                    .map(key => (
-                      <input
-                        key={key}
-                        name={key}
-                        defaultValue={(editDoctor as any)[key]}
-                        className="form-control mb-2"
-                      />
-                    ))}
-
-                  <input type="file" name="image" className="form-control mb-2"
+                  <input
+                    type="file"
+                    name="image"
+                    className="form-control mb-2"
                     onChange={(e: any) => {
                       const file = e.target.files[0];
                       if (!file) return;
@@ -485,28 +526,30 @@ try {
                     }}
                   />
 
-                  {preview && <img src={preview} width={80} className="rounded-circle mt-2" />}
-
+                  {preview && (
+                    <img
+                      src={preview}
+                      width={80}
+                      className="rounded-circle mt-2"
+                    />
+                  )}
                 </div>
 
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setEditDoctor(null)}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setEditDoctor(null)}
+                  >
                     Cancel
                   </button>
-                  <button className="btn btn-success">
-                    Update
-                  </button>
+                  <button className="btn btn-success">Update</button>
                 </div>
-
               </form>
-
             </div>
-
           </div>
-
         </div>
       )}
-
     </>
   );
 }
